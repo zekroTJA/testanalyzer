@@ -32,7 +32,7 @@ pub struct BenchResult {
     pub name: String,
     pub parallelism: Option<usize>,
     pub ops: Option<usize>,
-    pub duration: Option<Duration>,
+    pub duration_ns: Option<usize>,
     pub bytes_per_op: Option<usize>,
     pub allocs_per_op: Option<usize>,
 }
@@ -65,9 +65,9 @@ impl Matcher {
 
         let ops = groups.name("ops").map(|v| v.as_str().parse()).transpose()?;
 
-        let duration = groups
+        let duration_ns = groups
             .name("duration")
-            .map(|v| v.as_str().parse().map(Duration::from_nanos))
+            .map(|v| v.as_str().parse())
             .transpose()?;
 
         let bytes_per_op = groups
@@ -84,7 +84,7 @@ impl Matcher {
             name,
             parallelism,
             ops,
-            duration,
+            duration_ns,
             bytes_per_op,
             allocs_per_op,
         };

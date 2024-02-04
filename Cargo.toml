@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "1"
 chrono = "0.4.33"
 clap = { version = "4", features = ["derive"] }
+conv = "0.3.3"
 dirs = "5"
 figment = { version = "0.10", features = ["json", "yaml", "toml", "env"] }
 regex = "1.10.3"
