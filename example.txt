@@ -1,0 +1,9 @@
+BenchmarkSimpleSum-16              56796             21032 ns/op
+BenchmarkSimpleSum-16              56796             21032 ns/op
+BenchmarkSimpleSum-16              56796             21032 ns/op
+
+
+BenchmarkSimpleSum-16              56796             21032 ns/op
+BenchmarkSimpleSum-16              56796             21032 ns/op
+
+BenchmarkSimpleSum-16              56796             21032 ns/op
