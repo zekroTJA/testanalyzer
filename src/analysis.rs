@@ -1,5 +1,3 @@
-use conv::ConvUtil;
-
 #[derive(Debug)]
 pub struct Stats {
     pub n: usize,
@@ -27,10 +25,10 @@ impl Stats {
         let min = iter.clone().min()?;
         let max = iter.clone().max()?;
         let sum: usize = iter.clone().sum();
-        let avg = sum.value_as::<f64>().unwrap() / n as f64;
+        let avg = sum as f64 / n as f64;
         let sd = (iter
             .clone()
-            .map(|v| v.value_as::<f64>().unwrap())
+            .map(|v| v as f64)
             .fold(0f64, |acc, v| acc + (v - avg).powf(2f64))
             / n as f64)
             .sqrt();
