@@ -1,9 +1,6 @@
 use anyhow::Result;
 use regex::Regex;
-use std::{
-    io::{self},
-    time::Duration,
-};
+use std::io::{self};
 
 // Source: https://github.com/maragudk/go-bench2csv/blob/7b3cb2ca36e71970b5c8da1dadf67ea8b2b2b109/bench2csv.go#L24-L45
 const RX_LIT: &str = concat! {

@@ -1,24 +1,53 @@
 #![feature(slice_group_by)]
 
+mod analysis;
 mod matcher;
+
+use crate::analysis::Stats;
 use anyhow::Result;
 use clap::{command, Parser};
-use conv::{ConvUtil, ValueFrom};
 use matcher::BenchResult;
 use std::{
     collections::HashMap,
     fs::File,
     io::{self, BufReader},
-    iter::Sum,
-    ops::{Add, Div},
     path::PathBuf,
-    slice::Iter,
 };
+use tabled::{settings::Style, Table, Tabled};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     input: Vec<PathBuf>,
+}
+
+#[derive(Tabled)]
+struct StatsEntry {
+    metric: String,
+    min: usize,
+    max: usize,
+    avg: f64,
+    sd: f64,
+    median: usize,
+    pct90: usize,
+    pct95: usize,
+    pct99: usize,
+}
+
+impl StatsEntry {
+    fn from_stats(metric: &str, stats: &Stats) -> StatsEntry {
+        StatsEntry {
+            metric: metric.to_string(),
+            min: stats.min,
+            max: stats.max,
+            avg: stats.avg,
+            sd: stats.sd,
+            median: stats.median,
+            pct90: stats.pct90,
+            pct95: stats.pct95,
+            pct99: stats.pct99,
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -47,8 +76,28 @@ fn main() -> Result<()> {
     let results = group_results(&results);
 
     for (name, results) in results.iter() {
-        let s = stats(results.iter().map(|v| v.ops.unwrap()));
-        dbg!(s);
+        let mut table = vec![];
+
+        if let Some(ops_stats) = Stats::from_iter(results.iter().filter_map(|v| v.ops)) {
+            table.push(StatsEntry::from_stats("ops", &ops_stats));
+        }
+
+        if let Some(duration_ns) = Stats::from_iter(results.iter().filter_map(|v| v.duration_ns)) {
+            table.push(StatsEntry::from_stats("ns/op", &duration_ns));
+        }
+
+        if let Some(allocs_per_op) =
+            Stats::from_iter(results.iter().filter_map(|v| v.allocs_per_op))
+        {
+            table.push(StatsEntry::from_stats("allocs/op", &allocs_per_op));
+        }
+
+        if let Some(bytes_per_op) = Stats::from_iter(results.iter().filter_map(|v| v.bytes_per_op))
+        {
+            table.push(StatsEntry::from_stats("B/op", &bytes_per_op));
+        }
+
+        println!("{name}\n{}", Table::new(table).with(Style::modern()));
     }
 
     Ok(())
@@ -63,85 +112,4 @@ fn group_results(results: &[BenchResult]) -> HashMap<String, Vec<&BenchResult>> 
     }
 
     res
-}
-
-#[derive(Debug)]
-struct Stats {
-    pub n: usize,
-    pub min: usize,
-    pub max: usize,
-    pub sum: usize,
-    pub avg: f64,
-    pub sd: f64,
-    pub median: usize,
-    pub pct90: usize,
-    pub pct95: usize,
-    pub pct99: usize,
-}
-
-fn stats<I>(iter: I) -> Option<Stats>
-where
-    I: Iterator<Item = usize> + Clone,
-{
-    let n = iter.clone().count();
-    let min = iter.clone().min()?;
-    let max = iter.clone().max()?;
-    let sum: usize = iter.clone().sum();
-    let avg = sum.value_as::<f64>().unwrap() / n as f64;
-    let sd = (iter
-        .clone()
-        .map(|v| v.value_as::<f64>().unwrap())
-        .fold(0f64, |acc, v| acc + (v - avg).powf(2f64))
-        / n as f64)
-        .sqrt();
-
-    let median = if n % 2 == 1 {
-        iter.clone().nth((n + 1) / 2 - 1)?
-    } else {
-        let l = iter.clone().nth(n / 2 - 1)?;
-        let r = iter.clone().nth(n / 2)?;
-        (l + r) / 2usize
-    };
-
-    let pct90 = get_nth_percentile(n, iter.clone(), 0.90)?;
-    let pct95 = get_nth_percentile(n, iter.clone(), 0.95)?;
-    let pct99 = get_nth_percentile(n, iter.clone(), 0.99)?;
-
-    Some(Stats {
-        n,
-        min,
-        max,
-        sum,
-        avg,
-        sd,
-        median,
-        pct90,
-        pct95,
-        pct99,
-    })
-}
-
-fn get_nth_percentile<I>(count: usize, times: I, percentile: f64) -> Option<usize>
-where
-    I: Iterator<Item = usize> + Clone,
-{
-    let el = count as f64 * percentile;
-    let el_trunc = el as isize - 1;
-    if el_trunc < 0 {
-        return times.clone().next();
-    }
-
-    if el_trunc as usize + 1 >= count {
-        return times.clone().nth(el_trunc as usize);
-    }
-
-    let el_a = times.clone().nth(el_trunc as usize)?;
-    let el_b = times.clone().nth(el_trunc as usize + 1)?;
-
-    let el_fract_b = el - el_trunc as f64;
-    let el_fract_a = 1f64 - el_fract_b;
-
-    let res = (el_a as f64 * el_fract_a + el_b as f64 * el_fract_b).round();
-
-    Some(res as usize)
 }

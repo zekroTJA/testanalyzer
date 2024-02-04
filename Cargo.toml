@@ -14,3 +14,4 @@ dirs = "5"
 figment = { version = "0.10", features = ["json", "yaml", "toml", "env"] }
 regex = "1.10.3"
 serde = { version = "1", features = ["derive"] }
+tabled = "0.15.0"
