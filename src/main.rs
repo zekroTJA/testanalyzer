@@ -15,11 +15,14 @@ use std::{
 };
 use tabled::{settings::Style, Table, Tabled};
 
+/// Statistically analyze Go benchmark output
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// Input files with Go benchmark outputs
     input: Vec<PathBuf>,
 
+    /// Output results as CSV
     #[arg(short, long)]
     csv: bool,
 }
