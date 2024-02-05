@@ -10,7 +10,7 @@ use matcher::BenchResult;
 use std::{
     collections::HashMap,
     fs::File,
-    io::{self, BufReader},
+    io::{self, BufReader, Write},
     path::PathBuf,
 };
 use tabled::{settings::Style, Table, Tabled};
@@ -19,6 +19,9 @@ use tabled::{settings::Style, Table, Tabled};
 #[command(author, version, about, long_about = None)]
 struct Cli {
     input: Vec<PathBuf>,
+
+    #[arg(short, long)]
+    csv: bool,
 }
 
 #[derive(Tabled)]
@@ -48,6 +51,29 @@ impl StatsEntry {
             pct99: stats.pct99,
         }
     }
+
+    fn write_csv_header(mut w: impl io::Write) -> Result<()> {
+        Ok(writeln!(
+            w,
+            "name,metric,min,max,avg,sd,median,pct90,pct95,pct99"
+        )?)
+    }
+
+    fn write_csv(&self, name: &str, mut w: impl io::Write) -> Result<()> {
+        Ok(writeln!(
+            w,
+            "{name},{},{},{},{},{},{},{},{},{}",
+            self.metric,
+            self.min,
+            self.max,
+            self.avg,
+            self.sd,
+            self.median,
+            self.pct90,
+            self.pct95,
+            self.pct99
+        )?)
+    }
 }
 
 fn main() -> Result<()> {
@@ -74,8 +100,9 @@ fn main() -> Result<()> {
     }
 
     let results = group_results(&results);
+    let mut result_entries = HashMap::new();
 
-    for (name, results) in results.iter() {
+    for (name, results) in results {
         let mut table = vec![];
 
         if let Some(ops_stats) = Stats::from_iter(results.iter().filter_map(|v| v.ops)) {
@@ -97,7 +124,24 @@ fn main() -> Result<()> {
             table.push(StatsEntry::from_stats("B/op", &bytes_per_op));
         }
 
-        println!("{name}\n{}", Table::new(table).with(Style::modern()));
+        result_entries.insert(name, table);
+    }
+
+    if cli.csv {
+        StatsEntry::write_csv_header(io::stdout())?;
+        for (name, entries) in result_entries {
+            for e in entries {
+                e.write_csv(&name, io::stdout())?;
+            }
+        }
+    } else {
+        for (name, entries) in result_entries {
+            writeln!(
+                io::stdout(),
+                "{name}\n{}\n",
+                Table::new(entries).with(Style::modern())
+            )?;
+        }
     }
 
     Ok(())
