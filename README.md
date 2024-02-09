@@ -61,3 +61,7 @@ You can either download the latest release builds form the [Releases page](https
 ```
 cargo install --git https://github.com/zekroTJA/testanalyzer
 ```
+
+## Credits
+
+The output analyzer regular expression has been copied form [maragudk's](https://github.com/maragudk) [go-bench2csv tool](https://github.com/maragudk/go-bench2csv/blob/7b3cb2ca36e71970b5c8da1dadf67ea8b2b2b109/bench2csv.go#L24-L45), distributed under the [MIT License](https://github.com/maragudk/go-bench2csv/blob/main/LICENSE).
